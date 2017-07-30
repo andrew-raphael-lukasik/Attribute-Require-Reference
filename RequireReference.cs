@@ -8,7 +8,7 @@ using UnityEditor;
 //TODO: Add build-time warnings
 
 /// <summary>
-/// Field will glow red if null (TODO: Add build-time warnings)
+/// Field will glow red if null
 /// </summary>
 public class RequireReference : PropertyAttribute
 {
