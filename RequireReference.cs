@@ -9,10 +9,36 @@ using UnityEditor;
 //TODO: Add build-time warnings
 
 /// <summary>
-/// Field will glow red if null
+/// Field will glow red when null (or not of spefified Component type)
 /// </summary>
 public class RequireReference : PropertyAttribute
 {
+    #region FIELDS
+
+    public System.Type requiredType;
+
+    #endregion
+    #region CONSTRUCTORS
+
+    /// <summary>
+    /// Require reference
+    /// </summary>
+    public RequireReference ()
+    {
+        
+    }
+
+    /// <summary>
+    /// Require reference to a object with specific Component attached,
+    /// </summary>
+    public RequireReference ( System.Type componentType )
+    {
+        requiredType = componentType;
+    }
+
+    #endregion
+    #region NESTED_TYPES
+
     #if UNITY_EDITOR
     [CustomPropertyDrawer( typeof(RequireReference) )]
     public class ThisPropertyDrawer : PropertyDrawer
@@ -21,22 +47,48 @@ public class RequireReference : PropertyAttribute
         {
             EditorGUI.BeginProperty( position , label , property );
             {
+                RequireReference getRequireReference = attribute as RequireReference;
+
                 //test property:
-                bool isNull;
+                System.Object getObject;
                 if( property.propertyType==SerializedPropertyType.ObjectReference )
                 {
-                    isNull = property.objectReferenceValue==null;
+                    getObject = property.objectReferenceValue;
                 } else if( property.propertyType==SerializedPropertyType.ExposedReference )
                 {
-                    isNull = property.exposedReferenceValue==null;
+                    getObject = property.exposedReferenceValue;
                 } else
                 {
-                    label.text += string.Format( " ([{0}] is not compatible with {1} type fields)" , typeof(RequireReference) , property.propertyType );
-                    isNull = false;
+                    var sb = new System.Text.StringBuilder();
+                    {
+                        sb.AppendFormat(
+                            " ([{0}] is not compatible with {1} type fields)" ,
+                            typeof(RequireReference) ,
+                            property.propertyType
+                        );
+                    }
+                    label.text += sb.ToString();
+                    getObject = null;
                 }
 
-                //draw
-                if( isNull )
+                bool isOfRequiredType = false;
+                if( ( getRequireReference.requiredType!=null )&&( getObject!=null ) )
+                {
+                    if( getObject is GameObject )
+                    {
+                        isOfRequiredType = ( (GameObject)getObject ).GetComponent( getRequireReference.requiredType )!=null;
+                    } else if( getObject is Component )
+                    {
+                        var component = (Component)getObject;
+                        if( component!=null )
+                        {
+                            isOfRequiredType = component.GetComponent( getRequireReference.requiredType )!=null;
+                        }
+                    }
+                }
+
+                //draw red error overlay:
+                if( ( getObject==null )||( isOfRequiredType==false ) )
                 {
                     //draw animated rect:
                     Color color = Color.red;
@@ -52,4 +104,6 @@ public class RequireReference : PropertyAttribute
         }
     }
     #endif
+
+    #endregion
 }
